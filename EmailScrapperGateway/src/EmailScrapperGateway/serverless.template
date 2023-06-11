@@ -1,0 +1,211 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Transform": "AWS::Serverless-2016-10-31",
+  "Description": "Amazing email scrapper.",
+  "Resources": {
+    "GetFromCache": {
+      "Type": "AWS::Serverless::Function",
+      "Properties": {
+        "Architectures": [
+          "x86_64"
+        ],
+        "Handler": "EmailScrapperGateway::EmailScrapperGateway.Functions::GetFromCache",
+        "Runtime": "dotnet6",
+        "CodeUri": "",
+        "MemorySize": 256,
+        "Timeout": 30,
+        "Role": null,
+        "Policies": [
+          "AWSLambdaBasicExecutionRole",
+          "AmazonDynamoDBReadOnlyAccess"
+        ],
+        "Events": {
+          "RootGet": {
+            "Type": "Api",
+            "Properties": {
+              "Path": "/GetFromCache",
+              "Method": "POST"
+            }
+          }
+        }
+      }
+    },
+    "GetFromCacheOpt": {
+      "Type": "AWS::Serverless::Function",
+      "Properties": {
+        "Architectures": [
+          "x86_64"
+        ],
+        "Handler": "EmailScrapperGateway::EmailScrapperGateway.Functions::Option",
+        "Runtime": "dotnet6",
+        "CodeUri": "",
+        "MemorySize": 256,
+        "Timeout": 30,
+        "Role": null,
+        "Policies": [
+          "AWSLambdaBasicExecutionRole"
+        ],
+        "Events": {
+          "RootGet": {
+            "Type": "Api",
+            "Properties": {
+              "Path": "/GetFromCache",
+              "Method": "OPTIONS"
+            }
+          }
+        }
+      }
+    },
+    "AddToQueue": {
+      "Type": "AWS::Serverless::Function",
+      "Properties": {
+        "Architectures": [
+          "x86_64"
+        ],
+        "Handler": "EmailScrapperGateway::EmailScrapperGateway.Functions::AddToQueue",
+        "Runtime": "dotnet6",
+        "CodeUri": "",
+        "MemorySize": 256,
+        "Timeout": 30,
+        "Role": null,
+        "Policies": [
+          "AWSLambdaBasicExecutionRole",
+          "AmazonSQSFullAccess",
+          "AmazonDynamoDBReadOnlyAccess"
+        ],
+        "Events": {
+          "RootGet": {
+            "Type": "Api",
+            "Properties": {
+              "Path": "/AddToQueue",
+              "Method": "POST"
+            }
+          }
+        }
+      }
+    },
+    "AddToQueueOpt": {
+      "Type": "AWS::Serverless::Function",
+      "Properties": {
+        "Architectures": [
+          "x86_64"
+        ],
+        "Handler": "EmailScrapperGateway::EmailScrapperGateway.Functions::Option",
+        "Runtime": "dotnet6",
+        "CodeUri": "",
+        "MemorySize": 256,
+        "Timeout": 30,
+        "Role": null,
+        "Policies": [
+          "AWSLambdaBasicExecutionRole"
+        ],
+        "Events": {
+          "RootGet": {
+            "Type": "Api",
+            "Properties": {
+              "Path": "/AddToQueue",
+              "Method": "OPTIONS"
+            }
+          }
+        }
+      }
+    },
+    "ProcessDomain": {
+      "Type": "AWS::Serverless::Function",
+      "Properties": {
+        "Architectures": [
+          "x86_64"
+        ],
+        "Handler": "EmailScrapperGateway::EmailScrapperGateway.Functions::ProcessDomain",
+        "Runtime": "dotnet6",
+        "CodeUri": "",
+        "MemorySize": 256,
+        "Timeout": 30,
+        "Role": null,
+        "Policies": [
+          "AWSLambdaBasicExecutionRole",
+          "AmazonSQSFullAccess"
+        ],
+        "Events": {
+          "SQSEvent": {
+            "Type": "SQS",
+            "Properties": {
+              "Queue" : {"Fn::GetAtt" : [ "DomainsToProcessQ", "Arn"]},
+              "Enabled" : true
+            }
+          }
+        }
+      }
+    },
+    "ProcessURI": {
+      "Type": "AWS::Serverless::Function",
+      "Properties": {
+        "Architectures": [
+          "x86_64"
+        ],
+        "Handler": "EmailScrapperGateway::EmailScrapperGateway.Functions::ProcessURI",
+        "Runtime": "dotnet6",
+        "CodeUri": "",
+        "MemorySize": 256,
+        "Timeout": 30,
+        "Role": null,
+        "Policies": [
+          "AWSLambdaBasicExecutionRole",
+          "AWSLambdaSQSQueueExecutionRole",
+          "AmazonDynamoDBFullAccess"
+        ],
+        "Events": {
+          "SQSEvent": {
+            "Type": "SQS",
+            "Properties": {
+              "Queue" : {"Fn::GetAtt" : [ "URIsToProcessQ", "Arn"]},
+              "Enabled" : true
+            }
+          }
+        }
+      }
+    },
+    "DomainsToProcessQ": {
+      "Type" : "AWS::SQS::Queue",
+      "Properties" : {
+        "QueueName" : "DomainsToProcessQ"
+      }
+    },
+    "URIsToProcessQ": {
+      "Type" : "AWS::SQS::Queue",
+      "Properties" : {
+        "QueueName" : "URIsToProcessQ"
+      }
+    },
+    "DomainEmails" : {
+      "Type" : "AWS::DynamoDB::Table",
+      "Properties" : {
+        "AttributeDefinitions" : [
+          {
+            "AttributeName" : "Domain",
+            "AttributeType" : "S"   
+          }
+        ],
+        "KeySchema" : [
+          {
+            "AttributeName" : "Domain",
+            "KeyType" : "HASH"
+          }
+        ],
+        "ProvisionedThroughput" : {
+          "ReadCapacityUnits" : "100",
+          "WriteCapacityUnits" : "10"
+        },
+        "TableName" : "DomainEmails"
+      }
+    }
+  },
+  "Outputs": {
+    "ApiURL": {
+      "Description": "API endpoint URL for Prod environment",
+      "Value": {
+        "Fn::Sub": "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+      }
+    }
+  }
+}

@@ -12,32 +12,37 @@
 <body>
     <h1 align="center">Welcome to amazing email scrapper!</h1>
     <div class="container">
-        <div class="row align-items-center">
-            <div class="col-md-auto">
-                <textarea class="form-control" id="inputUrls" rows="25" cols="50">Type URLs here</textarea>
-            </div>
-            <div class="col-md-auto">
-                <button type="button" id="getEmails" class="btn btn-primary">Get emails></button>
-            </div>
-            <div class="col-md-auto">
-                <table id="outputTable" class="table">
-                    <thead>
-                        <tr>
-                            <th scope="col">#</th>
-                            <th scope="col">Link</th>
-                            <th scope="col">Email#1</th>
-                            <th scope="col">Email#2</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>1</td>
-                            <td>sampleurl.com</td>
-                            <td>foundemail1@sampleurl.com</td>
-                            <td>foundemail2@google.com</td>
-                        </tr>
-                    </tbody>
-                </table>
+        <div class="row">
+            <div class="row align-items-center">
+                <div class="col-md-3">
+                    <textarea class="form-control" id="inputUrls" rows="25" cols="50">petnpat.com</textarea>
+                </div>
+                <div class="col-1">
+                    <button type="button" id="getEmails" class="btn btn-primary">Get emails></button>
+                    <p></p>
+                    <button type="button" id="refresh" class="btn btn-secondary">Refresh</button>
+                    <p></p>
+                    <a href="" id="getCsv" download="my_data.csv" class="btn btn-primary">Download</a>
+                </div>
+                <div class="col-md-6">
+                    <table id="outputTable" class="table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Link</th>
+                                <th scope="col">Email#1</th>
+                                <th scope="col">Email#2</th>
+                                <th scope="col">Email#3</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>sampleurl.com</td>
+                                <td>foundemail1@sampleurl.com</td>
+                                <td>foundemail2@gmail.com</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -45,35 +50,61 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
     <script>
-        $("#getEmails").on("click", function () {
+        var reqCount = 0;
+        var csvContent = '';
+        var requestedGlobal = false;
+        var apiurl = "https://3vz4l595je.execute-api.eu-north-1.amazonaws.com/Prod/";
+        $("#getEmails").on("click", async function () {
             var inputUrls = $("#inputUrls").val().split(/\r?\n/);
-            console.log({ "urls": inputUrls });
-            $.post("ourapiurlforaddingtoqueue", { "urls": inputUrls });
+            var response = await fetch(apiurl + "AddToQueue", {
+                method: "POST",
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ "URIs": inputUrls })
+            });
+            var jsonResp = await response.json();
+            console.log(jsonResp);
+            updateTable({ "data": jsonResp.DataFromCache })
+            reqCount = 0;
+            requestedGlobal = true;
         });
-        const updateTable = function (data) {
+        const updateTable = function (json) {
+            console.log(json);
             $("#outputTable td").remove();
-            response = $.parseJSON(data);
-            console.log(response);
-            $.each(response.data, function (i, item) {
+            csvContent = "data:text/csv;charset=utf-8,";
+            var inputUrls = $("#inputUrls").val().split(/\r?\n/);
+            $.each(inputUrls, (i, element)=> {
+                var emails =[];
+                $.each(json.data, function (j, item) {
+                    if (element.toLowerCase() == item.url.toLowerCase()){
+                        emails = item.emails.sort((a, b) => a.length - b.length);
+                    }
+                });
                 var $tr = $('<tr>').append(
-                    $('<td>').text(i + 1),
-                    $('<td>').text(item.url),
-                    $('<td>').text(item.emails[0]),
-                    $('<td>').text(item.emails[1])
+                    $('<td>').text(element),
+                    $('<td>').text(emails[0]),
+                    $('<td>').text(emails[1]),
+                    $('<td>').text(emails[2]),
                 );
                 $tr.appendTo('#outputTable');
+                csvContent += element + "," + emails.join(",") +"\r\n";
             });
+            
+            var encodedUri = encodeURI(csvContent);
+            $("#getCsv").attr("href", encodedUri);
         }
-        setInterval(function () {
-            updateTable(JSON.stringify({
-                "data": [
-                    { "url": "aaaaa.aa", "emails": ["aaa@aa.aa", "bbb@bb.bb"] },
-                    { "url": "bbb.xx", "emails": ["ddd@aa.dd", "mmm@nn.bb"] }
-                ]
-            }));
+        const refresh = async function (requested) {
+            reqCount++;
+            if (!requested) return;
             var inputUrls = $("#inputUrls").val().split(/\r?\n/);
-            $.post("ourapiurlforgettingresults", { "urls": inputUrls }).done(data => updateTable(data));
-        }, 5000);
+            var response = await fetch(apiurl + "GetFromCache", {
+                method: "POST",
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ "URIs": inputUrls })
+            });
+            updateTable(await response.json());
+        }
+        $("#refresh").on("click", () => refresh(true));
+        //setInterval(() => refresh(requestedGlobal), 10000);
     </script>
 </body>
 
