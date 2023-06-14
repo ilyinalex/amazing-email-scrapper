@@ -168,14 +168,25 @@
     "DomainsToProcessQ": {
       "Type" : "AWS::SQS::Queue",
       "Properties" : {
-        "QueueName" : "DomainsToProcessQ"
+        "QueueName" : "DomainsToProcessQ",
+        "RedrivePolicy": {
+          "deadLetterTargetArn" : {"Fn::GetAtt" : [ "MyDeadLetterQueue" , "Arn" ]},
+          "maxReceiveCount" : 1
+        }
       }
     },
     "URIsToProcessQ": {
       "Type" : "AWS::SQS::Queue",
       "Properties" : {
-        "QueueName" : "URIsToProcessQ"
+        "QueueName" : "URIsToProcessQ",
+        "RedrivePolicy": {
+          "deadLetterTargetArn" : {"Fn::GetAtt" : [ "MyDeadLetterQueue" , "Arn" ]},
+          "maxReceiveCount" : 1
+        }
       }
+    },
+    "MyDeadLetterQueue" : {
+      "Type" : "AWS::SQS::Queue"
     },
     "DomainEmails" : {
       "Type" : "AWS::DynamoDB::Table",
@@ -193,7 +204,7 @@
           }
         ],
         "ProvisionedThroughput" : {
-          "ReadCapacityUnits" : "100",
+          "ReadCapacityUnits" : "90",
           "WriteCapacityUnits" : "10"
         },
         "TableName" : "DomainEmails"
