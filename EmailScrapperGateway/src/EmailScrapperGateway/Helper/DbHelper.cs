@@ -10,12 +10,16 @@ namespace EmailScrapperGateway.Helper
         private const int BatchSize = 10;
         public static async Task SaveDomainWithEmailsAsync(string domain, string[] emails)
         {
+            CacheResponse cacheResponse = await ReadFromCacheAsync(new[] { domain });
+            List<string> emailsToPut = new();
+            emailsToPut.AddRange(emails);
+            emailsToPut.AddRange(cacheResponse.data.SelectMany(uriInfo => uriInfo.emails));
             var request = new PutItemRequest
             {
                 TableName = DomainEmailsTable,
                 Item = new Dictionary<string, AttributeValue>() {
                      { "Domain", new AttributeValue(domain.ToLower()) },
-                     { "Emails", new AttributeValue(string.Join(",", emails))},
+                     { "Emails", new AttributeValue(string.Join(",", emailsToPut))},
                 }
             };
             using (AmazonDynamoDBClient dbClient = new AmazonDynamoDBClient())
