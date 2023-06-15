@@ -1,19 +1,16 @@
-﻿using Amazon.SQS.Model;
-using HtmlAgilityPack;
+﻿using HtmlAgilityPack;
 using System.Text.RegularExpressions;
 using static EmailScrapperGateway.Helper.URIHelper;
+using static EmailScrapperGateway.CloudFlareDecrypter;
 
-namespace EmailScrapperGateway.Helper
-{
-    internal static class HtmlContentHelper
-    {
+namespace EmailScrapperGateway.Helper {
+    internal static class HtmlContentHelper {
         private const string emailPattern = @"(?:[a-z0-9!#$%&'*+\/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+\/=?^_`{|}~-]+)*|""""(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*"")[\s[]*@[\s\]]*(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])";
         private const int HttpTimeout = 25000;
         private static readonly HashSet<string> ContactKeyWords = new() { "contact", "write", "about", "advertise", "with", "touch" };
         private static readonly Regex emailRegex = new(emailPattern);
 
-        public static async Task<List<string>> GetContactLinksAsync(string url)
-        {
+        public static async Task<List<string>> GetContactLinksAsync(string url) {
             (string? absoluteUri, string? domain) = GetUri(url);
             if (absoluteUri == null || domain == null) { return new List<string>(); }
             var doc = new HtmlDocument();
@@ -28,30 +25,41 @@ namespace EmailScrapperGateway.Helper
                 .OrderBy(linktext => linktext.Length));
             return GetInternalUris(hrefList, domain, absoluteUri).Distinct().ToList();
         }
-        public static async Task<string[]> GetEmailsAsync(string absoluteUri)
-        {
+        public static async Task<string[]> GetEmailsAsync(string absoluteUri) {
             string html = await GetHttpContentAsync(absoluteUri);
             html = ReplaceSimpleAntiScrapping(html);
             var doc = new HtmlDocument();
             doc.LoadHtml(await GetHttpContentAsync(absoluteUri));
-            HtmlNode[] linkNodes = doc.DocumentNode.SelectNodes("//text()|//@href")?.ToArray() ?? Array.Empty<HtmlNode>();
-            string[] emails = linkNodes
-                .Select(linkNode => linkNode.InnerText)
-                .Distinct()
+            List<string> emails = new();
+            emails.AddRange(GetTextsBySelector(doc, "//text()").FilterEmails());
+            emails.AddRange(GetAttributeValues(doc, "href").FilterEmails());
+            emails.AddRange(GetAttributeValues(doc, "data-cfemail").Select(encryptedText => Decrypt(encryptedText)).FilterEmails());
+            return emails.ToArray();
+        }
+
+        private static string[] GetTextsBySelector(HtmlDocument doc, string xpath) {
+            var nodes = doc.DocumentNode.SelectNodes(xpath)?.ToArray() ?? Array.Empty<HtmlNode>();
+            return nodes.Select(linkNode => linkNode.InnerText).Distinct().Where(s => !string.IsNullOrEmpty(s)).ToArray();
+        }
+        private static string[] GetAttributeValues(HtmlDocument doc, string attribute) {
+            var nodes = doc.DocumentNode.SelectNodes($"//@{attribute}")?.ToArray() ?? Array.Empty<HtmlNode>();
+            return nodes.Select(linkNode => linkNode.GetAttributeValue(attribute, "")).Distinct().Where(s => !string.IsNullOrEmpty(s)).ToArray();
+        }
+
+        private static string[] FilterEmails(this IEnumerable<string> potentialEmails) {
+            return potentialEmails
                 .Select(text => RemoveWhitespace(emailRegex.Match(text).Value))
                 .Where(email => !string.IsNullOrEmpty(email) && !email.Contains('/'))
                 .Distinct()
                 .ToArray();
-            return emails;
         }
-        private static string RemoveWhitespace(string input)
-        {
+
+        private static string RemoveWhitespace(string input) {
             return new string(input.ToCharArray()
                 .Where(c => !char.IsWhiteSpace(c))
                 .ToArray());
         }
-        private static string ReplaceSimpleAntiScrapping(string html)
-        {
+        private static string ReplaceSimpleAntiScrapping(string html) {
             html = html.Replace("[at]", "@");
             html = html.Replace("(at)", "@");
             html = html.Replace(" (at) ", "@");
@@ -60,8 +68,7 @@ namespace EmailScrapperGateway.Helper
             html = html.Replace(" [dot] ", ".");
             return html;
         }
-        private async static Task<string> GetHttpContentAsync(string absoluteUri)
-        {
+        private async static Task<string> GetHttpContentAsync(string absoluteUri) {
             var cts = new CancellationTokenSource();
             cts.CancelAfter(HttpTimeout);
             using HttpClient client = new HttpClient();
