@@ -19,7 +19,7 @@ namespace EmailScrapperGateway
         private const string baseSqsUrl = "https://sqs.eu-north-1.amazonaws.com/906774135415/";
         private const string DomainsToProcessQURL = baseSqsUrl + "DomainsToProcessQ";
         private const string URIsToProcessQURL = baseSqsUrl + "URIsToProcessQ";
-        private const int MaximumURIcountToSearch = 20; //does not include "main" URI
+        private const int MaximumURIcountToSearch = 20; 
         
         private readonly static APIGatewayProxyResponse EmptyResponse = GetProxyResponse("");
         private readonly static APIGatewayProxyResponse NotAuthorizedResponse = new() { StatusCode = 401 };

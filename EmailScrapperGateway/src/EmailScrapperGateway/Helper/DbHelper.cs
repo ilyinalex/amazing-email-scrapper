@@ -19,7 +19,7 @@ namespace EmailScrapperGateway.Helper
                 TableName = DomainEmailsTable,
                 Item = new Dictionary<string, AttributeValue>() {
                      { "Domain", new AttributeValue(domain.ToLower()) },
-                     { "Emails", new AttributeValue(string.Join(",", emailsToPut))},
+                     { "Emails", new AttributeValue(string.Join(",", emailsToPut.Distinct()))},
                 }
             };
             using (AmazonDynamoDBClient dbClient = new AmazonDynamoDBClient())
