@@ -60,8 +60,12 @@ namespace EmailScrapperGateway.Helper {
                 .ToArray());
         }
         private static string ReplaceSimpleAntiScrapping(string html) {
+            html = html.Replace(" at ", "@");
+            html = html.Replace(" dot ", ".");
             html = html.Replace(" (at) ", "@");
             html = html.Replace("(at)", "@");
+            html = html.Replace(" (dot) ", ".");
+            html = html.Replace("(dot)", ".");
             html = html.Replace(" [at] ", "@");
             html = html.Replace("[at]", "@");
             html = html.Replace(" [dot] ", ".");
