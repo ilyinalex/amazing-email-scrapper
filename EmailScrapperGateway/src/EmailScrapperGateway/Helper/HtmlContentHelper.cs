@@ -29,7 +29,7 @@ namespace EmailScrapperGateway.Helper {
             string html = await GetHttpContentAsync(absoluteUri);
             html = ReplaceSimpleAntiScrapping(html);
             var doc = new HtmlDocument();
-            doc.LoadHtml(await GetHttpContentAsync(absoluteUri));
+            doc.LoadHtml(html);
             List<string> emails = new();
             emails.AddRange(GetTextsBySelector(doc, "//text()").FilterEmails());
             emails.AddRange(GetAttributeValues(doc, "href").FilterEmails());
@@ -60,12 +60,12 @@ namespace EmailScrapperGateway.Helper {
                 .ToArray());
         }
         private static string ReplaceSimpleAntiScrapping(string html) {
-            html = html.Replace("[at]", "@");
-            html = html.Replace("(at)", "@");
             html = html.Replace(" (at) ", "@");
+            html = html.Replace("(at)", "@");
             html = html.Replace(" [at] ", "@");
-            html = html.Replace("[dot]", ".");
+            html = html.Replace("[at]", "@");
             html = html.Replace(" [dot] ", ".");
+            html = html.Replace("[dot]", ".");
             return html;
         }
         private async static Task<string> GetHttpContentAsync(string absoluteUri) {
