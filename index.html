@@ -32,7 +32,7 @@
                                 <th scope="col">Link</th>
                                 <th scope="col">Email#1</th>
                                 <th scope="col">Email#2</th>
-                                <th scope="col">Email#3</th>
+                                <th scope="col">Contact form url#1</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -47,7 +47,8 @@
         integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
     <script>
         var apiurl = "https://3vz4l595je.execute-api.eu-north-1.amazonaws.com/Prod/";
-        
+        const contactFormUrlPrecedence = ['advertise', 'write', 'contact', 'touch', 'about', 'with']
+
         $("#getEmails").on("click", async () => updateTable((await PostToUrl("AddToQueue")).DataFromCache));
         $("#refresh").on("click", async () => updateTable((await PostToUrl("GetFromCache")).data));
 
@@ -56,22 +57,46 @@
             var csvContent = "data:text/csv;charset=utf-8,";
             $.each(GetReqUrls(), (i, element)=> {
                 var emails =[];
+                var contactFormUrls =[];
+                const domainPrecedence = [element, 'gmail.com']
                 $.each(data, function (j, item) {
                     if (element.toLowerCase() == item.url.toLowerCase()){
-                        emails = item.emails.sort((a, b) => a.length - b.length);
+                        emails = item.emails.sort((a, b) => {
+                            let index1 = domainPrecedence.indexOf(a.toLowerCase().split('@')[1])
+                            let index2 = domainPrecedence.indexOf(b.toLowerCase().split('@')[1])
+                            return index1 == -1 ? 1 : index2 == -1 ? -1 : index1 - index2;
+                        });
+                        contactFormUrls = item.contactFormUrls.sort((a, b) => {
+                            index1 = 1000;
+                            index2 = 1000;
+                            a.split('/').some(function (word, i) {
+                                if (~contactFormUrlPrecedence.indexOf(word.toLowerCase())) {
+                                    index1 = i;
+                                    return true;
+                                }
+                            })
+                            b.split('/').some(function (word, i) {
+                                if (~contactFormUrlPrecedence.indexOf(word.toLowerCase())) {
+                                    index2 = i;
+                                    return true;
+                                }
+                            })
+                            return index1 - index2;
+                        });
                     }
                 });
+                
                 var $tr = $('<tr>').append(
                     $('<td>').text(element),
                     $('<td>').text(emails[0]),
                     $('<td>').text(emails[1]),
-                    $('<td>').text(emails[2]),
+                    $('<td>').text(contactFormUrls[0]),
                 );
                 $tr.appendTo('#outputTable');
-                csvContent += element + "," + emails.join(",") +"\r\n";
+                csvContent += element + "," + emails.join(",") + "," + contactFormUrls.join(",") +"\r\n";
             });
-            
-            $("#getCsv").attr("href", encodeURI(csvContent));
+            var regexp = /#.*\w/g;
+            $("#getCsv").attr("href", encodeURI(csvContent.replace(regexp,'')));
         }
 
         const PostToUrl = async function (url) {

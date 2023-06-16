@@ -60,9 +60,13 @@ namespace EmailScrapperGateway
                 try {
                     (string? absoluteUri, string? domain) = GetUri(message.Body);
                     if (absoluteUri == null || domain == null) { return; }
-                    string[] emails = await GetEmailsAsync(absoluteUri);
-                    if (!emails.Any()) { continue; }
-                    await SaveDomainWithEmailsAsync(domain, emails);
+                    (string[] emails, bool isContactForm) = await GetEmailsAsync(absoluteUri);
+                    if (!isContactForm && !emails.Any()) { continue; }
+                    if (isContactForm) {
+                        await SaveDomainWithEmailsAsync(domain, emails, absoluteUri, context.Logger);
+                        continue;
+                    }
+                    await SaveDomainWithEmailsAsync(domain, emails, context.Logger);
                 } catch (Exception e) { context.Logger.LogError(e.Message); }
             }
         }

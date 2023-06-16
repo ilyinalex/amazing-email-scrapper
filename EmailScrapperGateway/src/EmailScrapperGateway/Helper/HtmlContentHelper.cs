@@ -25,7 +25,7 @@ namespace EmailScrapperGateway.Helper {
                 .OrderBy(linktext => linktext.Length));
             return GetInternalUris(hrefList, domain, absoluteUri).Distinct().ToList();
         }
-        public static async Task<string[]> GetEmailsAsync(string absoluteUri) {
+        public static async Task<(string[], bool)> GetEmailsAsync(string absoluteUri) {
             string html = await GetHttpContentAsync(absoluteUri);
             html = ReplaceSimpleAntiScrapping(html);
             var doc = new HtmlDocument();
@@ -34,16 +34,22 @@ namespace EmailScrapperGateway.Helper {
             emails.AddRange(GetTextsBySelector(doc, "//text()").FilterEmails());
             emails.AddRange(GetAttributeValues(doc, "href").FilterEmails());
             emails.AddRange(GetAttributeValues(doc, "data-cfemail").Select(encryptedText => Decrypt(encryptedText)).FilterEmails());
-            return emails.ToArray();
+
+            return (emails.ToArray(), IsWordPresent(doc, "//form", "email"));
         }
 
         private static string[] GetTextsBySelector(HtmlDocument doc, string xpath) {
-            var nodes = doc.DocumentNode.SelectNodes(xpath)?.ToArray() ?? Array.Empty<HtmlNode>();
+            HtmlNode[] nodes = doc.DocumentNode.SelectNodes(xpath)?.ToArray() ?? Array.Empty<HtmlNode>();
             return nodes.Select(linkNode => linkNode.InnerText).Distinct().Where(s => !string.IsNullOrEmpty(s)).ToArray();
         }
         private static string[] GetAttributeValues(HtmlDocument doc, string attribute) {
-            var nodes = doc.DocumentNode.SelectNodes($"//@{attribute}")?.ToArray() ?? Array.Empty<HtmlNode>();
+            HtmlNode[] nodes = doc.DocumentNode.SelectNodes($"//@{attribute}")?.ToArray() ?? Array.Empty<HtmlNode>();
             return nodes.Select(linkNode => linkNode.GetAttributeValue(attribute, "")).Distinct().Where(s => !string.IsNullOrEmpty(s)).ToArray();
+        }
+
+        private static bool IsWordPresent(HtmlDocument doc, string xpath, string word) {
+            HtmlNode[] nodes = doc.DocumentNode.SelectNodes(xpath)?.ToArray() ?? Array.Empty<HtmlNode>();
+            return nodes.Select(node => node.InnerHtml.ToLower()).Any(x => x.Contains(word));
         }
 
         private static string[] FilterEmails(this IEnumerable<string> potentialEmails) {
@@ -75,7 +81,7 @@ namespace EmailScrapperGateway.Helper {
         private async static Task<string> GetHttpContentAsync(string absoluteUri) {
             var cts = new CancellationTokenSource();
             cts.CancelAfter(HttpTimeout);
-            using HttpClient client = new HttpClient();
+            using HttpClient client = new();
             using HttpResponseMessage response = await client.GetAsync(absoluteUri, cts.Token);
             using HttpContent content = response.Content;
             return await content.ReadAsStringAsync();
