@@ -35,7 +35,7 @@ namespace EmailScrapperGateway.Helper {
             emails.AddRange(GetAttributeValues(doc, "href").FilterEmails());
             emails.AddRange(GetAttributeValues(doc, "data-cfemail").Select(encryptedText => Decrypt(encryptedText)).FilterEmails());
 
-            return (emails.ToArray(), IsWordPresent(doc, "//form", "email"));
+            return (emails.ToArray(), IsWordPresentAndAnotherNotPresent(doc, "//form", "email"));
         }
 
         private static string[] GetTextsBySelector(HtmlDocument doc, string xpath) {
@@ -47,7 +47,7 @@ namespace EmailScrapperGateway.Helper {
             return nodes.Select(linkNode => linkNode.GetAttributeValue(attribute, "")).Distinct().Where(s => !string.IsNullOrEmpty(s)).ToArray();
         }
 
-        private static bool IsWordPresent(HtmlDocument doc, string xpath, string word) {
+        private static bool IsWordPresentAndAnotherNotPresent(HtmlDocument doc, string xpath, string word) {
             HtmlNode[] nodes = doc.DocumentNode.SelectNodes(xpath)?.ToArray() ?? Array.Empty<HtmlNode>();
             return nodes.Select(node => node.InnerHtml.ToLower()).Any(x => x.Contains(word));
         }
