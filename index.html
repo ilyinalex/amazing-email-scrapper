@@ -103,6 +103,12 @@
             var csvContent = "data:text/csv;charset=utf-8,";
             var totalCount = 0;
             var retrievedCount = 0;
+            var maxEmailCount = 0;
+            var maxContactFormUrlCount = 0;
+            $.each(data, (i, item) => { if(item.emails.length > maxEmailCount) { maxEmailCount = item.emails.length; } });
+            $.each(data, (i, item) => { if(item.contactFormUrls.length > maxContactFormUrlCount) { maxContactFormUrlCount = item.contactFormUrls.length; } });
+            csvContent += "Domain," + Array.from(Array(maxEmailCount).keys()).map(i => "Email" + (i + 1)).join(',') + ',' + 
+                Array.from(Array(maxContactFormUrlCount).keys()).map(i => "Contact form URL" + (i + 1)).join(',') + "\r\n";
             $.each(GetReqUrls(), (i, element)=> {
                 var emails =[];
                 var contactFormUrls =[];
@@ -142,6 +148,7 @@
                     $('<td>').text(contactFormUrls[0]),
                 );
                 $tr.appendTo('#outputTable');
+                emails.length = maxEmailCount;
                 csvContent += element + "," + emails.join(",") + "," + contactFormUrls.join(",") +"\r\n";
             });
             $("#foundInfo").text("Found & retrieved: " + retrievedCount + "/" + totalCount);
