@@ -27,8 +27,9 @@
                     <p></p>
                     <a href="" id="getCsv" download="my_data.csv" class="btn btn-primary">Download</a>
                     <p></p>
-                    <p id="qInfoDomain"></p>
-                    <p id="qInfoUri"></p>
+                    <p id="qInfoDomain">Domains in progress: N/A</p>
+                    <p id="qInfoUri">URIs in progress: N/A</p>
+                    <p id="foundInfo">Found & retrieved: N/A</p>
                 </div>
                 <div class="col-md-6">
                     <table id="outputTable" class="table">
@@ -97,10 +98,13 @@
             Cookies.set("User",$("#user").val());
             $("#outputTable td").remove();
             var csvContent = "data:text/csv;charset=utf-8,";
+            var totalCount = 0;
+            var retrievedCount = 0;
             $.each(GetReqUrls(), (i, element)=> {
                 var emails =[];
                 var contactFormUrls =[];
                 const domainPrecedence = [element, 'gmail.com']
+                totalCount++;
                 $.each(data, function (j, item) {
                     if (element.toLowerCase() == item.url.toLowerCase()){
                         emails = item.emails.sort((a, b) => {
@@ -127,7 +131,7 @@
                         });
                     }
                 });
-                
+                if (emails.length > 0 || contactFormUrls > 0) { retrievedCount++; }
                 var $tr = $('<tr>').append(
                     $('<td>').text(element),
                     $('<td>').text(emails[0]),
@@ -137,6 +141,7 @@
                 $tr.appendTo('#outputTable');
                 csvContent += element + "," + emails.join(",") + "," + contactFormUrls.join(",") +"\r\n";
             });
+            $("#foundInfo").text("Found & retrieved: " + retrievedCount + "/" + totalCount);
             var regexp = /#.*\w/g;
             $("#getCsv").attr("href", encodeURI(csvContent.replace(regexp,'')));
         }
