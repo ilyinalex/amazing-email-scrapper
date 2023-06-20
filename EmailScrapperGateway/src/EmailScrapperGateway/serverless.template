@@ -234,7 +234,7 @@
         "QueueName" : "URIsToProcessQ",
         "RedrivePolicy": {
           "deadLetterTargetArn" : {"Fn::GetAtt" : [ "MyDeadLetterQueue" , "Arn" ]},
-          "maxReceiveCount" : 1
+          "maxReceiveCount" : 2
         }
       }
     },

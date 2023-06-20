@@ -74,6 +74,7 @@ namespace EmailScrapperGateway.Helper {
                 .ToArray());
         }
         private static string ReplaceSimpleAntiScrapping(string html) {
+            html = html.Replace(" . ", ".");
             html = html.Replace(" at ", "@");
             html = html.Replace(" dot ", ".");
             html = html.Replace(" (at) ", "@");
@@ -93,7 +94,7 @@ namespace EmailScrapperGateway.Helper {
             try {
                 using HttpResponseMessage response = await client.GetAsync(absoluteUri, cts.Token);
                 using HttpContent content = response.Content;
-                string contentAsString = await content.ReadAsStringAsync();
+                string contentAsString = await content.ReadAsStringAsync(cts.Token);
                 return contentAsString;
             } catch (TaskCanceledException ex) {
                 logger.LogError($"Getting content timed out for: {absoluteUri}");
