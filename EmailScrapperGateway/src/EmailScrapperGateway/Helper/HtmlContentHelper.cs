@@ -55,7 +55,7 @@ namespace EmailScrapperGateway.Helper {
         private static string[] FilterEmails(this IEnumerable<string> potentialEmails) {
             return potentialEmails
                 .Select(text => RemoveWhitespace(emailRegex.Match(text?.ToLower() ?? "").Value))
-                .Where(email => !string.IsNullOrEmpty(email) && !email.Contains('/'))
+                .Where(email => !string.IsNullOrEmpty(email) && !email.Contains('/') && email.Any(x => char.IsLetter(x)))
                 .Distinct()
                 .ToArray();
         }
