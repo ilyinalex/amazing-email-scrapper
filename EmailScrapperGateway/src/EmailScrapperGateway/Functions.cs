@@ -22,7 +22,16 @@ namespace EmailScrapperGateway
         private const int MaximumURIcountToSearch = 20; 
         
         private readonly static APIGatewayProxyResponse EmptyResponse = GetProxyResponse("");
-        private readonly static APIGatewayProxyResponse NotAuthorizedResponse = new() { StatusCode = 401 };
+        private readonly static APIGatewayProxyResponse NotAuthorizedResponse = new() { 
+            StatusCode = 401,
+            Headers = new Dictionary<string, string> {
+                        { "Content-Type", "application/json" },
+                        { "Access-Control-Allow-Origin", "*" },
+                        { "Access-Control-Allow-Methods", "*" },
+                        { "Access-Control-Allow-Headers", "*" },
+                        { "Access-Control-Expose-Headers", "*" },
+                }
+        };
 
         public APIGatewayProxyResponse GetFromCache(APIGatewayProxyRequest request, ILambdaContext context) {
             URIRequestBody? body = GetBodyIfAuthorized(request);
