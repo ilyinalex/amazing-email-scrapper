@@ -2,6 +2,7 @@
 using System.Text.RegularExpressions;
 using static EmailScrapperGateway.Helper.URIHelper;
 using static EmailScrapperGateway.CloudFlareDecrypter;
+using Amazon.Lambda.Core;
 
 namespace EmailScrapperGateway.Helper {
     internal static class HtmlContentHelper {
@@ -25,8 +26,8 @@ namespace EmailScrapperGateway.Helper {
                 .OrderBy(linktext => linktext.Length));
             return GetInternalUris(hrefList, domain, absoluteUri).Distinct().ToList();
         }
-        public static async Task<(string[], bool)> GetEmailsAsync(string absoluteUri) {
-            string html = await GetHttpContentAsync(absoluteUri);
+        public static async Task<(string[], bool)> GetEmailsAsync(string absoluteUri, ILambdaLogger logger) {
+            string html = await GetHttpContentAsync(absoluteUri, logger);
             html = ReplaceSimpleAntiScrapping(html);
             var doc = new HtmlDocument();
             doc.LoadHtml(html);
@@ -78,13 +79,19 @@ namespace EmailScrapperGateway.Helper {
             html = html.Replace("[dot]", ".");
             return html;
         }
-        private async static Task<string> GetHttpContentAsync(string absoluteUri) {
+        private async static Task<string> GetHttpContentAsync(string absoluteUri, ILambdaLogger logger) {
             var cts = new CancellationTokenSource();
             cts.CancelAfter(HttpTimeout);
             using HttpClient client = new();
-            using HttpResponseMessage response = await client.GetAsync(absoluteUri, cts.Token);
-            using HttpContent content = response.Content;
-            return await content.ReadAsStringAsync();
+            try {
+                using HttpResponseMessage response = await client.GetAsync(absoluteUri, cts.Token);
+                using HttpContent content = response.Content;
+                string contentAsString = await content.ReadAsStringAsync();
+                return contentAsString;
+            } catch (TaskCanceledException ex) {
+                logger.LogError($"Getting content timed out for: {absoluteUri}");
+                throw;
+            }
         }
     }
 }

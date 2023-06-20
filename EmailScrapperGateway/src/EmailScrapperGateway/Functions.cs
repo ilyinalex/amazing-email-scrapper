@@ -65,7 +65,7 @@ namespace EmailScrapperGateway
         public async Task ProcessDomain(SQSEvent evnt, ILambdaContext context) {
             foreach (SQSEvent.SQSMessage? message in evnt.Records) {
                 try {
-                    var urisToQueue = await GetContactLinksAsync(message.Body);
+                    var urisToQueue = await GetContactLinksAsync(message.Body, context.Logger);
                     if (!urisToQueue.Any()) { continue; }
                     await QueueMessagesAsync(URIsToProcessQURL, urisToQueue.Take(MaximumURIcountToSearch));
                 } catch (Exception e) { context.Logger.LogError(e.Message); }
@@ -77,7 +77,7 @@ namespace EmailScrapperGateway
                 try {
                     (string? absoluteUri, string? domain) = GetUri(message.Body);
                     if (absoluteUri == null || domain == null) { return; }
-                    (string[] emails, bool isContactForm) = await GetEmailsAsync(absoluteUri);
+                    (string[] emails, bool isContactForm) = await GetEmailsAsync(absoluteUri, context.Logger);
                     if (!isContactForm && !emails.Any()) { continue; }
                     if (isContactForm) {
                         await SaveDomainWithEmailsAsync(domain, emails, absoluteUri, context.Logger);
