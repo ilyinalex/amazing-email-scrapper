@@ -65,7 +65,7 @@
 
         $("#getEmails").on("click", async () => {
             qInfoRequestCount = 0;
-            if (timeoutId != 0) clearInterval(timeoutId);
+            if (timeoutId != 0) { clearInterval(timeoutId); }
             timeoutId = setInterval(async ()=> {
                 if (qInfoRequestCount > 20) return;
                 qInfoRequestCount++;
@@ -87,7 +87,10 @@
                 } else{
                     $("#qInfoUri").css('color', 'Orange');
                 }
-                if (respJson.DomainQueueMessageNumber + respJson.UriQueueMessageNumber == 0 && qInfoRequestCount > 3) clearInterval(timeoutId);
+                if (respJson.DomainQueueMessageNumber + respJson.UriQueueMessageNumber == 0 && qInfoRequestCount > 3)  { 
+                    clearInterval(timeoutId); 
+                    await updateTable((await PostToUrl("GetFromCache")).data);
+                }
             }, 10000);
             updateTable((await PostToUrl("AddToQueue")).DataFromCache)
         });
