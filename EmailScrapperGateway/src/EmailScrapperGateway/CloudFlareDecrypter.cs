@@ -1,5 +1,6 @@
 ﻿namespace EmailScrapperGateway {
     internal class CloudFlareDecrypter {
+        public const string urlFragment = "/cdn-cgi/l/email-protection#";
         private static int ExtractHex(string s, int index) => Convert.ToInt32("0x" + s.Substring(index, 2), 16);
         public static string Decrypt(string s) {
             string output = "";

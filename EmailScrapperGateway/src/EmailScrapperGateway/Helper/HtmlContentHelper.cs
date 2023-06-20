@@ -11,11 +11,11 @@ namespace EmailScrapperGateway.Helper {
         private static readonly HashSet<string> ContactKeyWords = new() { "contact", "write", "about", "advertise", "with", "touch" };
         private static readonly Regex emailRegex = new(emailPattern);
 
-        public static async Task<List<string>> GetContactLinksAsync(string url) {
+        public static async Task<List<string>> GetContactLinksAsync(string url, ILambdaLogger logger) {
             (string? absoluteUri, string? domain) = GetUri(url);
             if (absoluteUri == null || domain == null) { return new List<string>(); }
             var doc = new HtmlDocument();
-            doc.LoadHtml(await GetHttpContentAsync(absoluteUri));
+            doc.LoadHtml(await GetHttpContentAsync(absoluteUri, logger));
             HtmlNode[] linkNodes = doc.DocumentNode.SelectNodes("//a")?.ToArray() ?? Array.Empty<HtmlNode>();
 
             List<string> hrefList = new() { absoluteUri };
@@ -34,6 +34,13 @@ namespace EmailScrapperGateway.Helper {
             List<string> emails = new();
             emails.AddRange(GetTextsBySelector(doc, "//text()").FilterEmails());
             emails.AddRange(GetAttributeValues(doc, "href").FilterEmails());
+            emails.AddRange(
+                GetAttributeValues(doc, "href")
+                .Where(text => text.Contains(urlFragment))
+                .Select(textWichCode => textWichCode[(textWichCode.IndexOf(urlFragment) + urlFragment.Length)..])
+                .Select(encryptedText => Decrypt(encryptedText).Replace("%20"," "))
+                .FilterEmails()
+            );
             emails.AddRange(GetAttributeValues(doc, "data-cfemail").Select(encryptedText => Decrypt(encryptedText)).FilterEmails());
 
             return (emails.ToArray(), IsWordPresentAndAnotherNotPresent(doc, "//form", "email", "subscribe"));
