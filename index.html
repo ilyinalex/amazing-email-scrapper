@@ -149,6 +149,7 @@
                 );
                 $tr.appendTo('#outputTable');
                 emails.length = maxEmailCount;
+                contactFormUrls.length = maxContactFormUrlCount;
                 csvContent += element + "," + emails.join(",") + "," + contactFormUrls.join(",") +"\r\n";
             });
             $("#foundInfo").text("Found & retrieved: " + retrievedCount + "/" + totalCount);
