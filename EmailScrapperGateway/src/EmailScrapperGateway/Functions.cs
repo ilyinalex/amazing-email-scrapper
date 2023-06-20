@@ -34,13 +34,21 @@ namespace EmailScrapperGateway
         };
 
         public APIGatewayProxyResponse GetFromCache(APIGatewayProxyRequest request, ILambdaContext context) {
-            URIRequestBody? body = GetBodyIfAuthorized(request);
+            URIRequestBody? body = GetUriRequestBodyIfAuthorized(request);
             if (body == null) { return NotAuthorizedResponse; }
             return GetProxyResponse(ReadFromCacheAsync(body.URIs).GetAwaiter().GetResult());
         }
+        public APIGatewayProxyResponse GetQueueInfo(APIGatewayProxyRequest request, ILambdaContext context) {
+            QueueInfoRequestBody? body = GetQueueInfoRequestBodyIfAuthorized(request);
+            if (body == null) { return NotAuthorizedResponse; }
+            return GetProxyResponse(new QueueInfo() { 
+                DomainQueueMessageNumber = GetNumberOfMessages(DomainsToProcessQURL).GetAwaiter().GetResult(),
+                UriQueueMessageNumber = GetNumberOfMessages(URIsToProcessQURL).GetAwaiter().GetResult()
+            });
+        }
 
         public APIGatewayProxyResponse AddToQueue(APIGatewayProxyRequest request, ILambdaContext context) {
-            URIRequestBody? body = GetBodyIfAuthorized(request);
+            URIRequestBody? body = GetUriRequestBodyIfAuthorized(request);
             if (body == null) { return NotAuthorizedResponse; }
             string[] correctUris = body.URIs
                     .Select(uri => GetUri(uri).domain)
@@ -82,8 +90,14 @@ namespace EmailScrapperGateway
 
         public APIGatewayProxyResponse Option(APIGatewayProxyRequest request, ILambdaContext context) => EmptyResponse;
 
-        private static URIRequestBody? GetBodyIfAuthorized(APIGatewayProxyRequest request) {
+        private static URIRequestBody? GetUriRequestBodyIfAuthorized(APIGatewayProxyRequest request) {
             URIRequestBody? body = JsonConvert.DeserializeObject<URIRequestBody>(request.Body);
+            if (body?.User != AuthorizedUser) { return null; };
+            return body;
+        }
+
+        private static QueueInfoRequestBody? GetQueueInfoRequestBodyIfAuthorized(APIGatewayProxyRequest request) {
+            QueueInfoRequestBody? body = JsonConvert.DeserializeObject<QueueInfoRequestBody>(request.Body);
             if (body?.User != AuthorizedUser) { return null; };
             return body;
         }

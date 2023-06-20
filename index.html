@@ -12,19 +12,23 @@
 
 <body>
     <h1 align="center">Welcome to amazing email scrapper!</h1>
-    <div class="container">
+    <div class="container-fluid">
         <div class="row">
-            <div class="row align-items-center">
+            <div class="row">
                 <div class="col-md-3">
                     <input type="text" id="user" placeholder="Username"></input>
                     <textarea class="form-control" id="inputUrls" rows="25" cols="50" placeholder="Type domains here like 'mydomain.com' row by row"></textarea>
                 </div>
-                <div class="col-1">
+                <div class="col-3">
+                    <p></p>
                     <button type="button" id="getEmails" class="btn btn-primary">Get emails></button>
                     <p></p>
                     <button type="button" id="refresh" class="btn btn-secondary">Refresh</button>
                     <p></p>
                     <a href="" id="getCsv" download="my_data.csv" class="btn btn-primary">Download</a>
+                    <p></p>
+                    <p id="qInfoDomain"></p>
+                    <p id="qInfoUri"></p>
                 </div>
                 <div class="col-md-6">
                     <table id="outputTable" class="table">
@@ -48,6 +52,8 @@
         integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
     <script>
         var apiurl = "https://3vz4l595je.execute-api.eu-north-1.amazonaws.com/Prod/";
+        var qInfoRequestCount = 0;
+        var timeoutId = 0;
         const contactFormUrlPrecedence = ['advertise', 'write', 'contact', 'touch', 'about', 'with']
 
         $(document).ready(function() {
@@ -56,7 +62,34 @@
             $("#user").val(user);
         });
 
-        $("#getEmails").on("click", async () => updateTable((await PostToUrl("AddToQueue")).DataFromCache));
+        $("#getEmails").on("click", async () => {
+            qInfoRequestCount = 0;
+            if (timeoutId != 0) clearInterval(timeoutId);
+            timeoutId = setInterval(async ()=> {
+                if (qInfoRequestCount > 20) return;
+                qInfoRequestCount++;
+                var response = await fetch(apiurl + "GetQueueInfo", {
+                    method: "POST",
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ "User": $("#user").val() })
+                });
+                var respJson = await response.json();
+                $("#qInfoDomain").text("Domains in progress: " + respJson.DomainQueueMessageNumber);
+                $("#qInfoUri").text("URIs in progress: " + respJson.UriQueueMessageNumber);
+                if (respJson.DomainQueueMessageNumber == 0){
+                    $("#qInfoDomain").css('color', 'green');
+                } else{
+                    $("#qInfoDomain").css('color', 'Orange');
+                }
+                if (respJson.UriQueueMessageNumber == 0){
+                    $("#qInfoUri").css('color', 'green');
+                } else{
+                    $("#qInfoUri").css('color', 'Orange');
+                }
+                if (respJson.DomainQueueMessageNumber + respJson.UriQueueMessageNumber == 0 && qInfoRequestCount > 3) clearInterval(timeoutId);
+            }, 10000);
+            updateTable((await PostToUrl("AddToQueue")).DataFromCache)
+        });
         $("#refresh").on("click", async () => updateTable((await PostToUrl("GetFromCache")).data));
 
         const updateTable = function (data) {

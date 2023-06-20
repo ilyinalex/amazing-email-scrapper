@@ -147,7 +147,7 @@
         "Runtime": "dotnet6",
         "CodeUri": "",
         "MemorySize": 256,
-        "Timeout": 30,
+        "Timeout": 250,
         "Role": null,
         "Policies": [
           "AWSLambdaBasicExecutionRole",
@@ -160,6 +160,59 @@
             "Properties": {
               "Queue" : {"Fn::GetAtt" : [ "URIsToProcessQ", "Arn"]},
               "Enabled" : true
+            }
+          }
+        }
+      }
+    },
+    "GetQueueInfo": {
+      "Type": "AWS::Serverless::Function",
+      "Properties": {
+        "Architectures": [
+          "x86_64"
+        ],
+        "Handler": "EmailScrapperGateway::EmailScrapperGateway.Functions::GetQueueInfo",
+        "Runtime": "dotnet6",
+        "CodeUri": "",
+        "MemorySize": 256,
+        "Timeout": 30,
+        "Role": null,
+        "Policies": [
+          "AWSLambdaBasicExecutionRole",
+          "AWSLambdaSQSQueueExecutionRole"
+        ],
+        "Events": {
+          "RootGet": {
+            "Type": "Api",
+            "Properties": {
+              "Path": "/GetQueueInfo",
+              "Method": "POST"
+            }
+          }
+        }
+      }
+    },
+    "GetQueueInfoOpt": {
+      "Type": "AWS::Serverless::Function",
+      "Properties": {
+        "Architectures": [
+          "x86_64"
+        ],
+        "Handler": "EmailScrapperGateway::EmailScrapperGateway.Functions::Option",
+        "Runtime": "dotnet6",
+        "CodeUri": "",
+        "MemorySize": 256,
+        "Timeout": 30,
+        "Role": null,
+        "Policies": [
+          "AWSLambdaBasicExecutionRole"
+        ],
+        "Events": {
+          "RootGet": {
+            "Type": "Api",
+            "Properties": {
+              "Path": "/GetQueueInfo",
+              "Method": "OPTIONS"
             }
           }
         }
