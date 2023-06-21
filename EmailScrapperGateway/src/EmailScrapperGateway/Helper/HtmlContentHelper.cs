@@ -1,7 +1,7 @@
 ﻿using HtmlAgilityPack;
 using System.Text.RegularExpressions;
 using static EmailScrapperGateway.Helper.URIHelper;
-using static EmailScrapperGateway.CloudFlareDecrypter;
+using static EmailScrapperGateway.Logic.CloudFlareDecrypter;
 using static EmailScrapperGateway.DNSHelper;
 using Amazon.Lambda.Core;
 

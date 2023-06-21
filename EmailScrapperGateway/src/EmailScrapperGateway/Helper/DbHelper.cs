@@ -92,8 +92,8 @@ namespace EmailScrapperGateway.Helper {
                 TableName = UserRequestsTable,
                 Item = new Dictionary<string, AttributeValue>() {
                      { UserField, new AttributeValue(userInfo.User) },
-                     { RequestedDomainsField, new AttributeValue(userInfo.RequestedDomains) },
-                     { FoundDomainsField, new AttributeValue(userInfo.FoundDomains) },
+                     { RequestedDomainsField, new AttributeValue(userInfo.RequestedDomains.Distinct().ToList()) },
+                     { FoundDomainsField, new AttributeValue(userInfo.FoundDomains.Distinct().ToList()) },
                      { AllowedDomainRequestCountField, new AttributeValue() { N = userInfo.AllowedDomainRequestCount.ToString() } },
                 }
             };
