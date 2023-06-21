@@ -167,12 +167,27 @@
             }).then(async response => {
                 if (!response.ok) {
                     switch(response.status){
-                        case 401: SetButtonsAvailability(true); alert('Incorrect user'); break;
-                        case 500: alert('Server error. Try to reload the page and send same request again'); break;
-                        default: alert('Unknown error');
+                        case 401: 
+                            SetButtonsAvailability(true); 
+                            clearInterval(timeoutId);
+                            alert('Incorrect user'); 
+                            break;
+                        case 402: 
+                            SetButtonsAvailability(true); 
+                            var json = await response.json();
+                            clearInterval(timeoutId);
+                            alert('Insufficient domains paid! Requested ' + json.requestedDomainsCount +'. Allowed ' + json.allowedDomainRequestCount + '.'); 
+                            break;
+                        case 500: 
+                            clearInterval(timeoutId);
+                            alert('Server error. Try to reload the page and send same request again'); 
+                            break;
+                        default: 
+                            alert('Unknown error');
                     }
+                } else {
+                    jsonResp = await response.json();
                 }
-                jsonResp = await response.json();
             }).catch(function(error) {
                 SetButtonsAvailability(true);
                 alert('Server error. Verify domains\' formats are similar to "domain.com". If everything is correct, try to reload the page and send same request again');

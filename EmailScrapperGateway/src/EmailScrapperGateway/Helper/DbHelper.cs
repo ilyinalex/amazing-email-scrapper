@@ -2,10 +2,17 @@
 using Amazon.DynamoDBv2;
 using EmailScrapperGateway.DTO;
 using Amazon.Lambda.Core;
+using System;
+using System.Linq;
 
 namespace EmailScrapperGateway.Helper {
     internal static class DbHelper {
         const string DomainEmailsTable = "DomainEmails";
+        const string UserRequestsTable = "UserRequests";
+        const string UserField = "User";
+        const string RequestedDomainsField = "RequestedDomains";
+        const string FoundDomainsField = "FoundDomains";
+        const string AllowedDomainRequestCountField = "AllowedDomainRequestCount";
         const string DomainField = "Domain";
         const string EmailsField = "Emails";
         const string ContactFormUrlsField = "ContactFormUrls";
@@ -18,7 +25,7 @@ namespace EmailScrapperGateway.Helper {
             while (tryCount < TryLimit) {
                 try {
                     tryCount++;
-                    CacheResponse cacheResponse = await ReadFromCacheAsync(new[] { domain });
+                    CacheResponse cacheResponse = await ReadUriInfoFromCacheAsync(new[] { domain });
                     IEnumerable<string> oldEmails = cacheResponse.data.SelectMany(uriInfo => uriInfo.emails);
                     IEnumerable<string> oldContactFormUrls = cacheResponse.data.SelectMany(uriInfo => uriInfo.contactFormUrls);
                     List<string> emailsToPut = new();
@@ -54,7 +61,7 @@ namespace EmailScrapperGateway.Helper {
             }
         }
 
-        public static async Task<CacheResponse> ReadFromCacheAsync(string[] URIs) {
+        public static async Task<CacheResponse> ReadUriInfoFromCacheAsync(string[] URIs) {
             List<UriInfo> uriInfos = new();
             using (AmazonDynamoDBClient dbClient = new()) {
                 for (int i = 0; i <= (URIs.Length - 1) / BatchSize; i++) {
@@ -78,6 +85,33 @@ namespace EmailScrapperGateway.Helper {
                 }
             }
             return new CacheResponse() { data = uriInfos.ToArray() };
+        }
+
+        public static async Task PutUserInfo(UserInfo userInfo, AmazonDynamoDBClient dbClient) {
+            var request = new PutItemRequest {
+                TableName = UserRequestsTable,
+                Item = new Dictionary<string, AttributeValue>() {
+                     { UserField, new AttributeValue(userInfo.User) },
+                     { RequestedDomainsField, new AttributeValue(userInfo.RequestedDomains) },
+                     { FoundDomainsField, new AttributeValue(userInfo.FoundDomains) },
+                     { AllowedDomainRequestCountField, new AttributeValue() { N = userInfo.AllowedDomainRequestCount.ToString() } },
+                }
+            };
+            _ = await dbClient.PutItemAsync(request);
+        }
+
+        public static async Task<UserInfo?> GetUserInfo(string user, AmazonDynamoDBClient dbClient) {
+            GetItemResponse resp = await dbClient.GetItemAsync(new GetItemRequest(UserRequestsTable,
+                new Dictionary<string, AttributeValue>() { { UserField, new AttributeValue(user) } }));
+            if (!resp.IsItemSet) { return null; }
+            var userInfo = new UserInfo {
+                User = resp.Item[UserField].S,
+                RequestedDomains = resp.Item[RequestedDomainsField].SS,
+                FoundDomains = resp.Item[FoundDomainsField].SS,
+                AllowedDomainRequestCount = int.Parse(resp.Item[AllowedDomainRequestCountField].N)
+            };
+            userInfo.RemainingDomainRequestCount = userInfo.AllowedDomainRequestCount - userInfo.FoundDomains.Intersect(userInfo.RequestedDomains).Count() + 1;
+            return userInfo;
         }
     }
 }

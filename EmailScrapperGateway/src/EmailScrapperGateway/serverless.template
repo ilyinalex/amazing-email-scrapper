@@ -17,7 +17,7 @@
         "Role": null,
         "Policies": [
           "AWSLambdaBasicExecutionRole",
-          "AmazonDynamoDBReadOnlyAccess"
+          "AmazonDynamoDBFullAccess"
         ],
         "Events": {
           "RootGet": {
@@ -71,7 +71,7 @@
         "Policies": [
           "AWSLambdaBasicExecutionRole",
           "AmazonSQSFullAccess",
-          "AmazonDynamoDBReadOnlyAccess"
+          "AmazonDynamoDBFullAccess"
         ],
         "Events": {
           "RootGet": {
@@ -179,7 +179,8 @@
         "Role": null,
         "Policies": [
           "AWSLambdaBasicExecutionRole",
-          "AWSLambdaSQSQueueExecutionRole"
+          "AWSLambdaSQSQueueExecutionRole",
+          "AmazonDynamoDBReadOnlyAccess"
         ],
         "Events": {
           "RootGet": {
@@ -261,6 +262,28 @@
           "WriteCapacityUnits" : "10"
         },
         "TableName" : "DomainEmails"
+      }
+    },
+    "UserRequests" : {
+      "Type" : "AWS::DynamoDB::Table",
+      "Properties" : {
+        "AttributeDefinitions" : [
+          {
+            "AttributeName" : "User",
+            "AttributeType" : "S"   
+          }
+        ],
+        "KeySchema" : [
+          {
+            "AttributeName" : "User",
+            "KeyType" : "HASH"
+          }
+        ],
+        "ProvisionedThroughput" : {
+          "ReadCapacityUnits" : "5",
+          "WriteCapacityUnits" : "5"
+        },
+        "TableName" : "UserRequests"
       }
     }
   },
