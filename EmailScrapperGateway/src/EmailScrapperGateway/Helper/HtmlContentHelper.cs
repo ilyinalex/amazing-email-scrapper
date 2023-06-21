@@ -2,6 +2,7 @@
 using System.Text.RegularExpressions;
 using static EmailScrapperGateway.Helper.URIHelper;
 using static EmailScrapperGateway.CloudFlareDecrypter;
+using static EmailScrapperGateway.DNSHelper;
 using Amazon.Lambda.Core;
 
 namespace EmailScrapperGateway.Helper {
@@ -43,7 +44,7 @@ namespace EmailScrapperGateway.Helper {
             );
             emails.AddRange(GetAttributeValues(doc, "data-cfemail").Select(encryptedText => Decrypt(encryptedText)).FilterEmails());
 
-            return (emails.ToArray(), IsWordPresentAndAnotherNotPresent(doc, "//form", "email", "subscribe"));
+            return (await GetEmailsWithValidDomains(emails), IsWordPresentAndAnotherNotPresent(doc, "//form", "email", "subscribe"));
         }
 
         private static string[] GetTextsBySelector(HtmlDocument doc, string xpath) {
@@ -96,7 +97,7 @@ namespace EmailScrapperGateway.Helper {
                 using HttpContent content = response.Content;
                 string contentAsString = await content.ReadAsStringAsync(cts.Token);
                 return contentAsString;
-            } catch (TaskCanceledException ex) {
+            } catch (TaskCanceledException) {
                 logger.LogError($"Getting content timed out for: {absoluteUri}");
                 throw;
             }
